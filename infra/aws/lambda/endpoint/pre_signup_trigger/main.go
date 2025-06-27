@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -16,7 +17,7 @@ func main() {
 }
 
 func handler(ctx context.Context, event events.CognitoEventUserPoolsPreSignup) (events.CognitoEventUserPoolsPreSignup, error) {
-	if event.TriggerSource != "PreSignUp_ExternalProvider" {
+	if event.TriggerSource == "PreSignUp_ExternalProvider" {
 		return handlingFederatedSignUp(event)
 	}
 
@@ -33,7 +34,7 @@ func handlingFederatedSignUp(event events.CognitoEventUserPoolsPreSignup) (event
 	// Search for existing users with the same email
 	input := &cognitoidentityprovider.ListUsersInput{
 		UserPoolId: &event.UserPoolID,
-		Filter:     aws.String("email = \"" + email + "\""),
+		Filter:     aws.String(fmt.Sprintf("email = %q", email)),
 		Limit:      aws.Int64(1),
 	}
 
