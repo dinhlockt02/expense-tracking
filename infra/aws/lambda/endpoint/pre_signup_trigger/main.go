@@ -26,6 +26,9 @@ func handler(ctx context.Context, event events.CognitoEventUserPoolsPreSignup) (
 
 func handlingFederatedSignUp(event events.CognitoEventUserPoolsPreSignup) (events.CognitoEventUserPoolsPreSignup, error) {
 	email := event.Request.UserAttributes["email"]
+	if email == "" {
+		return event, errors.New("email is required for sign-up")
+	}
 
 	// Check if the email is already registered
 	sess := session.Must(session.NewSession())
