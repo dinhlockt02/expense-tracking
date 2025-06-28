@@ -68,7 +68,6 @@ resource "aws_cognito_user_pool_client" "webapp" {
   generate_secret = false
 
   explicit_auth_flows = [ 
-    "ALLOW_USER_SRP_AUTH",
     "ALLOW_REFRESH_TOKEN_AUTH"
    ]
 }

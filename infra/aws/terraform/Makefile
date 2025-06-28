@@ -1,4 +1,4 @@
-.PHONY: apply init 
+.PHONY: init plan-dev apply-dev destroy-dev
 
 init: 
 	terraform init
