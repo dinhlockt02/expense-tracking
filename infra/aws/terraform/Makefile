@@ -3,11 +3,11 @@
 init: 
 	terraform init
 
-plan-dev:
+plan-dev: init
 	terraform plan -var-file=env/dev/terraform.tfvars
 
-apply-dev:
+apply-dev: init
 	terraform apply -var-file=env/dev/terraform.tfvars -auto-approve
 
-destroy-dev:
+destroy-dev: init
 	terraform destroy -var-file=env/dev/terraform.tfvars -auto-approve
