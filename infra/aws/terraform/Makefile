@@ -1,9 +1,13 @@
-.PHONY: apply
+.PHONY: apply init 
 
-apply:
-	terraform apply -auto-approve
+init: 
+	terraform init
+
+plan-dev:
+	terraform plan -var-file=env/dev/terraform.tfvars
 
 apply-dev:
-	# destroy existing resources in dev environment
-	terraform destroy -var-file=env/dev/terraform.tfvars -auto-approve || true
 	terraform apply -var-file=env/dev/terraform.tfvars -auto-approve
+
+destroy-dev:
+	terraform destroy -var-file=env/dev/terraform.tfvars -auto-approve

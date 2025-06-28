@@ -1,16 +1,3 @@
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-  }
-}
-
-provider "aws" {
-  region = var.aws_region
-}
-
 resource "aws_cognito_user_pool" "main" {
   name = "${var.user_pool_name}-${var.environment}"
 
@@ -82,7 +69,6 @@ resource "aws_cognito_user_pool_client" "webapp" {
 
   explicit_auth_flows = [ 
     "ALLOW_USER_SRP_AUTH",
-    "ALLOW_REFRESH_TOKEN_AUTH",
-    "ALLOW_USER_AUTH",
+    "ALLOW_REFRESH_TOKEN_AUTH"
    ]
 }
