@@ -9,10 +9,15 @@ resource "aws_iam_role" "lambda_role" {
         Principal = {
           Service = "lambda.amazonaws.com"
         }
-        Action = "sßts:AssumeRole"
+        Action = "sts:AssumeRole"
       }
     ]
   })
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_basic_execution" {
+  role       = aws_iam_role.lambda_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
 resource "aws_lambda_function" "main" {
@@ -23,5 +28,8 @@ resource "aws_lambda_function" "main" {
 
   filename         = var.filename
   source_code_hash = filebase64sha256(var.filename)
+
+  timeout     = var.timeout
+  memory_size = var.memory_size
 }
 
