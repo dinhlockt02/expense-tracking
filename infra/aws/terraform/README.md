@@ -1,21 +1,33 @@
 # Terraform Project
 
-This Terraform project manages infras of expense-tracking project.
+This Terraform project manages infrastructure for the expense-tracking project.
 
 ## Usage
 
-```bash
-# Initialize
-terraform init
+You can use the provided `Makefile` to simplify common Terraform commands:
 
-# Plan changes
-terraform plan
+### Initialize Terraform
 
-# Apply changes
+```
+make init
+```
+
+### Plan changes for the dev environment
+
+```
+make plan-dev
+```
+
+### Apply changes to the dev environment
+
+```
 make apply-dev
+```
 
-# Destroy resources
-terraform destroy
+### Destroy resources in the dev environment
+
+```
+make destroy-dev
 ```
 
 ## Structure
@@ -27,3 +39,4 @@ terraform destroy
 - `providers.tf` - Provider configurations
 - `/environments` - Environment-specific configurations
 - `/modules` - Reusable Terraform modules
+- `Makefile` - Common Terraform commands for convenience
