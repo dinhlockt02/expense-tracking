@@ -31,5 +31,9 @@ resource "aws_lambda_function" "main" {
 
   timeout     = var.timeout
   memory_size = var.memory_size
+
+  # Enforce signed artefacts (optional but recommended)
+  # Variable should default to `null` to keep backward compatibility.
+  code_signing_config_arn = var.code_signing_config_arn
 }
 

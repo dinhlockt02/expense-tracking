@@ -24,7 +24,7 @@ variable "environment" {
 variable "google_client_id" {
   description = "Google Client ID for Cognito Identity Provider"
   type        = string
-  sensitive   = false
+  sensitive   = true
 }
 
 variable "google_client_secret" {
