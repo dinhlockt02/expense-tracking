@@ -14,7 +14,7 @@ jobs:
       - name: Get changed folders
         id: set-folders
         run: |
-          # Get list of changed files in the folder
+          # Get list of changed files in the folder. Currently, there are a few lambda endpoints so we will discover all of them.
           CHANGED_FILES=$(find infra/aws/lambda/endpoint -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | sort | uniq)
           # Extract unique folders (one level below endpoint)
           FOLDERS=$(echo "$CHANGED_FILES" | jq -R -s -c 'split("\n")[:-1]')
@@ -36,19 +36,21 @@ jobs:
         run: |
           echo "Deploying Lambda in infra/aws/lambda/endpoint/${{ matrix.folder }}"
 
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24" # keep in sync with gomod
+
       - name: Build go artifact
+        env:
+          CGO_ENABLED: 0
+          GOOS: linux
+          GOARCH: amd64
         run: |
-          # Verify the folder exists
-          if [ ! -d "infra/aws/lambda/endpoint/${{ matrix.folder }}" ]; then
-            echo "Directory infra/aws/lambda/endpoint/${{ matrix.folder }} does not exist"
-            exit 1
-          fi
-          # Change to the directory and build the Go artifact
           echo "Building Go artifact in infra/aws/lambda/endpoint/${{ matrix.folder }}"
           cd infra/aws/lambda/endpoint/${{ matrix.folder }}
           # Install Go dependencies
-          go mod tidy
-
+          go mod download
           # Build the Go binary
           go build -o main ./...
 
