@@ -1,0 +1,61 @@
+name: Deploy changed Lambda endpoints
+
+on:
+  workflow_dispatch:
+
+jobs:
+  discover-lambdas:
+    runs-on: ubuntu-latest
+    outputs:
+      folders: ${{ steps.set-folders.outputs.folders }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Get changed folders
+        id: set-folders
+        run: |
+          # Get list of changed files in the folder. Currently, there are a few lambda endpoints so we will discover all of them.
+          CHANGED_FILES=$(find infra/aws/lambda/endpoint -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | sort | uniq)
+          # Extract unique folders (one level below endpoint)
+          FOLDERS=$(echo "$CHANGED_FILES" | jq -R -s -c 'split("\n")[:-1]')
+          echo "Changed folders: $FOLDERS"
+          echo "folders=$FOLDERS" >> $GITHUB_OUTPUT
+
+  build-and-deploy-lambda:
+    needs: discover-lambdas
+    if: ${{ needs.discover-lambdas.outputs.folders != '[]' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        folder: ${{ fromJson(needs.discover-lambdas.outputs.folders) }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy Lambda for ${{ matrix.folder }}
+        run: |
+          echo "Deploying Lambda in infra/aws/lambda/endpoint/${{ matrix.folder }}"
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24" # keep in sync with gomod
+
+      - name: Build go artifact
+        env:
+          CGO_ENABLED: 0
+          GOOS: linux
+          GOARCH: amd64
+        run: |
+          echo "Building Go artifact in infra/aws/lambda/endpoint/${{ matrix.folder }}"
+          cd infra/aws/lambda/endpoint/${{ matrix.folder }}
+          # Install Go dependencies
+          go mod download
+          # Build the Go binary
+          go build -o main ./...
+
+      - name: Package Lambda function
+        run: |
+          echo "Packaging Lambda function in infra/aws/lambda/endpoint/${{ matrix.folder }}"
+          cd infra/aws/lambda/endpoint/${{ matrix.folder }}
+          zip -r lambda.zip main
