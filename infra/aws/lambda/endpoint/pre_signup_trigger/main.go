@@ -12,7 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 )
 
-// trigger 1
+// trigger 2
 func main() {
 	lambda.Start(handler)
 }
