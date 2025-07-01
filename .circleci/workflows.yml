@@ -6,6 +6,21 @@ parameters:
     default: false
 
 jobs:
+  build-lambda-pre-signup-trigger:
+    docker:
+      - image: cimg/go:1.24
+    steps:
+      - checkout
+      - run:
+          name: Build Lambda Pre-Signup Trigger
+          command: |
+            echo "Building Lambda Pre-Signup Trigger..."
+            go build -o pre_signup_trigger ./infra/aws/lambda/endpoint/pre_signup_trigger
+      - persist_to_workspace:
+          root: .
+          paths:
+            - pre_signup_trigger
+          destination: pre_signup_trigger
   deploy-lambda-pre-signup-trigger:
     docker:
       - image: cimg/base:stable
@@ -21,5 +36,8 @@ workflows:
     when:
       condition: << pipeline.parameters.lambda-pre-signup-trigger >>
     jobs:
-      - deploy-lambda-pre-signup-trigger
+      - deploy-lambda-pre-signup-trigger:
+          filters:
+            branches:
+              only: main
     
