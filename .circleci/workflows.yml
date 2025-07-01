@@ -1,0 +1,25 @@
+version: 2.1
+
+parameters:
+  lambda-pre-signup-trigger:
+    type: boolean
+    default: false
+
+jobs:
+  deploy-lambda-pre-signup-trigger:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - checkout
+      - run:
+          name: Deploy Lambda Pre-Signup Trigger
+          command: |
+            echo "Deploying Lambda Pre-Signup Trigger..."
+
+workflows:
+  lambda:
+    when:
+      condition: << pipeline.parameters.lambda-pre-signup-trigger >>
+    jobs:
+      - deploy-lambda-pre-signup-trigger
+    
