@@ -36,6 +36,7 @@ workflows:
     when:
       condition: << pipeline.parameters.lambda-pre-signup-trigger >>
     jobs:
+      - build-lambda-pre-signup-trigger
       - deploy-lambda-pre-signup-trigger:
           filters:
             branches:
