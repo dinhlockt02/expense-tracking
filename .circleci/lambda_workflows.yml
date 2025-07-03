@@ -1,0 +1,45 @@
+version: 2.1
+
+parameters:
+  lambda-pre-signup-trigger:
+    type: boolean
+    default: false
+
+orbs:
+  aws-ecr: circleci/aws-ecr@9.5.2
+
+jobs:
+  test_lambda_trigger:
+    docker:
+      - image: cimg/go:1.24.4
+    steps:
+      - checkout
+      - run:
+          name: Run Lambda Trigger Tests
+          command: |
+            cd infra/aws/lambda && \
+            go test -v ./... -tags lambda_trigger
+
+workflows:
+  lambda_workflow:
+    jobs:
+      - test_lambda_trigger
+      - aws-ecr/build_and_push_image:
+          name: build-and-push-pre-signup-image
+          path: infra/aws/lambda
+          build_path: infra/aws/lambda
+          tag: ${CIRCLE_SHA1}
+          repo_tag: |
+            {"lambda_task": "${LAMBDA_TASK}"}
+          account_id: ${AWS_ACCOUNT_ID}
+          create_repo: true
+          extra_build_args: |
+            --build-arg LAMBDA_TASK=${LAMBDA_TASK}
+          repo: dinhlockt02/expense-tracking/lambda_${LAMBDA_TASK}
+
+          when:
+          - lambda-pre-signup-trigger 
+          filters:
+            branches:
+              only: main
+          
