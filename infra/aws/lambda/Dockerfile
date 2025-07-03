@@ -12,7 +12,6 @@ COPY . .
 # Build the Go app
 ENV CGO_ENABLED=0 GOOS=linux GOARCH=amd64
 RUN go build -ldflags '-s -w' -o main endpoint/$LAMBDA_TASK/main.go
-RUN go build -o main endpoint/$LAMBDA_TASK/main.go
 
 # Copy artifacts to a clean image
 FROM public.ecr.aws/lambda/provided:al2023
