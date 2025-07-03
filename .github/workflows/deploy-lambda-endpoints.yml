@@ -51,7 +51,7 @@ jobs:
 
       - name: Build Lambda for ${{ matrix.folder }}
         run: |
-          echo "Building Lambda in infra/aws/lambda/endpoint/${{ matrix.folder }}" && \
+          echo "Building Lambda in infra/aws/lambda/endpoint/${{ matrix.folder }}"
       
       - name: Build Docker image
         run: |
@@ -66,13 +66,13 @@ jobs:
 
       - name: Save Docker image as artifact
         run: |
-          docker save ${{ matrix.folder }}:${{ github.sha }} -o /tmp/${{ matrix.folder }}.tar
+          docker save ${{ matrix.folder }}:${{ github.sha }} -o /tmp/${{ matrix.folder }}-${{ github.sha }}.tar
       
       - name: Upload Docker image artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.folder }}-${{ github.sha }}
-          path: /tmp/${{ matrix.folder }}.tar
+          path: /tmp/${{ matrix.folder }}-${{ github.sha }}.tar
 
   deploy-lambdas:
     needs: 
@@ -97,7 +97,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${ secrets.AWS_DOCKER_BUILD_ROLE_ARN }
+          role-to-assume: ${{ secrets.AWS_DOCKER_BUILD_ROLE_ARN }}
           aws-region: ap-southeast-1 # Default region for ECR
 
       - name: Login to Amazon ECR
@@ -106,16 +106,17 @@ jobs:
 
       - name: Tag image for ECR
         env:
-          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REGISTRY: expense-tracking # Hardcoded repository name
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: expense-tracking
         run: |
-          echo "Tagging image for ECR repository: $REPOSITORY:${{ matrix.folder }}-${{ github.sha }}"
-          docker tag ${{ matrix.folder }}:${{ github.sha }} $ECR_REGISTRY/$REPOSITORY:${{ matrix.folder }}-${{ github.sha }}
+          echo "Tagging image for ECR repository: $ECR_REPOSITORY:${{ matrix.folder }}-${{ github.sha }}"
+          docker tag ${{ matrix.folder }}:${{ github.sha }} $ECR_REGISTRY/$ECR_REPOSITORY:${{ matrix.folder }}-${{ github.sha }}
 
       - name: Push image to ECR
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: expense-tracking
         run: |
-          docker push $ECR_REGISTRY/$REPOSITORY:${{ matrix.folder }}-${{ github.sha }}
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ matrix.folder }}-${{ github.sha }}
 
 
