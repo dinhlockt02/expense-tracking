@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 )
 
+// test trigger source
 func main() {
 	lambda.Start(handler)
 }
