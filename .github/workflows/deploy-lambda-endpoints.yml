@@ -107,7 +107,7 @@ jobs:
       - name: Tag image for ECR
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          REPOSITORY: expense-tracking # Hardcoded repository name
+          ECR_REGISTRY: expense-tracking # Hardcoded repository name
         run: |
           echo "Tagging image for ECR repository: $REPOSITORY:${{ matrix.folder }}-${{ github.sha }}"
           docker tag ${{ matrix.folder }}:${{ github.sha }} $ECR_REGISTRY/$REPOSITORY:${{ matrix.folder }}-${{ github.sha }}
