@@ -1,7 +1,12 @@
 name: Deploy changed Lambda endpoints
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'infra/aws/lambda/endpoint/**'
+    
 
 jobs:
   discover-lambdas:
@@ -20,8 +25,9 @@ jobs:
           FOLDERS=$(echo "$CHANGED_FILES" | jq -R -s -c 'split("\n")[:-1]')
           echo "Changed folders: $FOLDERS"
           echo "folders=$FOLDERS" >> $GITHUB_OUTPUT
-
-  build-and-deploy-lambda:
+  
+  # Build lambda images
+  build-lambdas:
     needs: discover-lambdas
     if: ${{ needs.discover-lambdas.outputs.folders != '[]' }}
     runs-on: ubuntu-latest
@@ -32,30 +38,84 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy Lambda for ${{ matrix.folder }}
-        run: |
-          echo "Deploying Lambda in infra/aws/lambda/endpoint/${{ matrix.folder }}"
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Cache Docker layers
+        uses: actions/cache@v4
         with:
-          go-version: "1.24" # keep in sync with gomod
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ matrix.folder }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-${{ matrix.folder }}
 
-      - name: Build go artifact
+      - name: Build Lambda for ${{ matrix.folder }}
+        run: |
+          echo "Building Lambda in infra/aws/lambda/endpoint/${{ matrix.folder }}" && \
+      
+      - name: Build Docker image
+        run: |
+          cd infra/aws/lambda
+          docker buildx build \
+          --build-arg LAMBDA_TASK=${{ matrix.folder }} \
+          --cache-from type=local,src=/tmp/.buildx-cache \
+          --cache-to type=local,dest=/tmp/.buildx-cache \
+          --load \
+          -t ${{ matrix.folder }}:${{ github.sha }} .
+    
+
+      - name: Save Docker image as artifact
+        run: |
+          docker save ${{ matrix.folder }}:${{ github.sha }} -o /tmp/${{ matrix.folder }}.tar
+      
+      - name: Upload Docker image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.folder }}-${{ github.sha }}
+          path: /tmp/${{ matrix.folder }}.tar
+
+  deploy-lambdas:
+    needs: 
+      - build-lambdas
+      - discover-lambdas
+    if: ${{ needs.discover-lambdas.outputs.folders != '[]' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        folder: ${{ fromJson(needs.discover-lambdas.outputs.folders) }}
+    steps:
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.folder }}-${{ github.sha }}
+          path: /tmp
+
+      - name: Load Docker image
+        run: |
+          docker load -i /tmp/${{ matrix.folder }}-${{ github.sha }}.tar
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${ secrets.AWS_DOCKER_BUILD_ROLE_ARN }
+          aws-region: ap-southeast-1 # Default region for ECR
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Tag image for ECR
         env:
-          CGO_ENABLED: 0
-          GOOS: linux
-          GOARCH: amd64
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          REPOSITORY: expense-tracking # Hardcoded repository name
         run: |
-          echo "Building Go artifact in infra/aws/lambda/endpoint/${{ matrix.folder }}"
-          cd infra/aws/lambda/endpoint/${{ matrix.folder }}
-          # Install Go dependencies
-          go mod download
-          # Build the Go binary
-          go build -o main ./...
+          echo "Tagging image for ECR repository: $REPOSITORY:${{ matrix.folder }}-${{ github.sha }}"
+          docker tag ${{ matrix.folder }}:${{ github.sha }} $ECR_REGISTRY/$REPOSITORY:${{ matrix.folder }}-${{ github.sha }}
 
-      - name: Package Lambda function
+      - name: Push image to ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
-          echo "Packaging Lambda function in infra/aws/lambda/endpoint/${{ matrix.folder }}"
-          cd infra/aws/lambda/endpoint/${{ matrix.folder }}
-          zip -r lambda.zip main
+          docker push $ECR_REGISTRY/$REPOSITORY:${{ matrix.folder }}-${{ github.sha }}
+
+
